@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Tarkov 武器ルーレット</title>
+
+<style>
+body {
+  background:#0f0f0f;
+  color:#fff;
+  font-family:sans-serif;
+  text-align:center;
+}
+
+/* 作者 */
+body::after {
+  content: "作者 はくちゃん　X:@RyuChino_3";
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  color: rgba(255,255,255,0.2);
+  font-size: 14px;
+}
+
+/* ルーレット */
+.weapon-box {
+  border:2px solid #fff;
+  padding:20px;
+  border-radius:10px;
+  width:360px;
+  margin:40px auto;
+}
+
+img {
+  width:100%;
+  height:200px;
+  object-fit:contain;
+  margin-top:10px;
+  background:#222;
+}
+
+button {
+  margin:5px;
+  padding:8px 15px;
+  border:none;
+  border-radius:6px;
+  background:#00c853;
+  color:#fff;
+  cursor:pointer;
+}
+
+/* 🔥 メニューボタン（元に戻した） */
+.menu-btn {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background:#00c853;
+  z-index:1001;
+}
+
+/* サイドメニュー */
+.side-menu {
+  position: fixed;
+  top: 0;
+  left: -320px;
+  width: 320px;
+  height: 100%;
+  background:#1a1a1a;
+  overflow-y:auto;
+  transition: 0.3s;
+  padding:15px;
+  z-index:1000;
+  text-align:left;
+}
+
+/* 開いた状態 */
+.side-menu.open {
+  left: 0;
+}
+
+/* ボタン下げ（被り防止） */
+.menu-top-controls {
+  margin-top: 60px;
+  margin-bottom: 10px;
+}
+
+.category {
+  margin-bottom:15px;
+  border:1px solid #444;
+  padding:10px;
+  border-radius:8px;
+}
+
+label {
+  display:inline-block;
+  margin:4px 8px 4px 0;
+}
+</style>
+</head>
+
+<body>
+
+<button class="menu-btn" onclick="toggleMenu()">☰ メニュー</button>
+
+<div class="side-menu" id="sideMenu">
+  <div class="menu-top-controls">
+    <button onclick="selectAllWeapons(true)">全ON</button>
+    <button onclick="selectAllWeapons(false)">全OFF</button>
+  </div>
+  <div id="weaponList"></div>
+</div>
+
+<h1>🔫 Tarkov 武器ルーレット</h1>
+
+<div class="weapon-box">
+  <div id="weapon">武器</div>
+  <img id="weaponImg">
+</div>
+
+<button onclick="spin()">回す</button>
+
+<script>
+
+const weaponData = {
+"Pistol":["Blicky","APB","M9A3","CR200DS","CR50DS","M1911A1","M45A1Mew-mew","FN5-7","FN5-7FDE","Glock17","Glock18C","Glock19X","USP45","PL-15","PMt","PM","DesertEagleMkXIX","DesertEagleL50","DesertEagleL5","DesertEagleL6","DesertEagleL6WTS","PB","RSh-12","P226R","SR-1MP","APS","TT","TTGold","MP-443Grach"],
+"SMG":["MP9","MP9-N","P90","MP5","MP5K-N","MP7A1","MP7A2","UMP45","UZI","UZIPROSMG","UZIPROPistol","PP-19-01","PP-9Klin","PP-91Kedr","PP-91-01Kedr-B","PPSh41","MPX","SR-2M","Saiga-9","STM-9","Vector45ACP","Vector9x19"],
+"Assault":["ASVAL","ASh-12","Verociraptor300BLK","Mk47","M16A1","M16A2","M4A1Standard","NL545DI","NL545GP","SA-58","MDR556","MDR762","Mk17LB","Mk17","Mk16LB","Mk16","HK416A5","G36","AK-101","AK-102","AK-103","AK-104","AK-105","AK-12","AK-308","AK-74","AK-74M","AK-74N","AKM","AKMN","AKMS","AKMSN","AKS-74","AKS-74N","AKS-74U","AKS-74UB","AKS-74UN","Model1","RD-704","MCX300BLK","SPEAR68","AUGA1","AUGA3","AUGA3Black"],
+"Assault carbines":["ADAR2-15","ASVALMOD4","9A-91","VSK-94","RFB","TX-15DML","OP-SKS","VPO-101Vepr-Hunter","VPO-136Vepr-KM","VPO-209","AK-545","AK-545Short","SR-3M","AVT-40","SVT-40","SKS"],
+"Machine guns":["RPD","RPDN","PKM","PKPPecheneg","RPK-16","Mk43Mod1","M60E6"],
+"Marksman rifles":["G28","SR-25","SR-25Taupe","RSASS","SVDS","Mk-18Mjölnir","M1A","AK-50","TKPD","VSSVintorez"],
+"Bolt-action rifles":["AXMC","DVL-10Urbana","MXLR","VPO-215","MosinInfantry","Mosin","T-5000M","M700","SV-98","TRGM10"],
+"Shotgun":["M3Super90","AA-12Gen1","AA-12Gen2","MP-133","MP-153","MP-155","MP-18","Sawed-off","MP-43-1C","MTs-255-12","590A1","M870","Saiga12gav10","Saiga-12FA","KS-23M","TOZ-106"],
+"Grenade launcher":["FN40GL","MSGL"]
+};
+
+function toggleMenu(){
+  document.getElementById("sideMenu").classList.toggle("open");
+}
+
+function formatName(name){
+  return name.replace(/\s/g,"_").replace(/[()".]/g,"");
+}
+
+function renderList(){
+  const c=document.getElementById("weaponList");
+  c.innerHTML="";
+  Object.keys(weaponData).forEach(cat=>{
+    const d=document.createElement("div");
+    d.className="category";
+    d.innerHTML=`<h3>${cat}
+    <button onclick="toggleCategory('${cat}',true)">ON</button>
+    <button onclick="toggleCategory('${cat}',false)">OFF</button>
+    </h3>`;
+    weaponData[cat].forEach(w=>{
+      const id=cat+"_"+formatName(w);
+      const l=document.createElement("label");
+      l.innerHTML=`<input type="checkbox" id="${id}" class="weaponCheck" checked> ${w}`;
+      d.appendChild(l);
+    });
+    c.appendChild(d);
+  });
+}
+
+function toggleCategory(cat,state){
+  weaponData[cat].forEach(w=>{
+    const el=document.getElementById(cat+"_"+formatName(w));
+    if(el) el.checked=state;
+  });
+}
+
+function selectAllWeapons(state){
+  document.querySelectorAll(".weaponCheck").forEach(e=>e.checked=state);
+}
+
+function getActiveWeapons(){
+  return [...document.querySelectorAll(".weaponCheck:checked")]
+    .map(e=>e.nextSibling.textContent.trim());
+}
+
+function spin(){
+  const list=getActiveWeapons();
+  if(!list.length){alert("武器選択して");return;}
+  let i=0;
+  const t=setInterval(()=>{
+    const w=list[Math.floor(Math.random()*list.length)];
+    document.getElementById("weapon").innerText=w;
+    document.getElementById("weaponImg").src="images/"+formatName(w)+".png";
+    if(++i>20) clearInterval(t);
+  },50);
+}
+
+renderList();
+
+</script>
+</body>
+</html>
